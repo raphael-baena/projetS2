@@ -78,33 +78,33 @@ def channel(K,N,N_time):     #K users,N subcarriers, N_times slot.
             
     return H
     
-def PF_scheduler(H,P_total,N0,Tk):
+def PF_scheduler(H,P_total):
   #A_t[k,s] timeslot,user,nsubcarrier
 #H_T: Channel matrix of size K*S.
 #Bc: Bandwidth per subband
 #Tk_t: average throughput achieved so far 
     N_time=np.size(H,0)  #nb timeslot
-    K=np.size(K,1) #nb user
+    K=np.size(H,1) #nb user
     S=np.size(H,2) #nb subcarrier
     N0 = 4e-21
     Bc=10E6/S
     tc=20
     P=P_total/S
-    A=np.zeros((N_time,K))#allocation matrice
-    R_possible=np.zeros((N_time,K))#possible data rate 
+    A=np.zeros((N_time,K,S))#allocation matrice
+    R_possible=np.zeros((N_time,K,S))#possible data rate 
     Tk=np.zeros((N_time,K,S))
-    pf=np.zeros(N_time,K,S)
+    pf=np.zeros((N_time,K,S))
     for t in range(N_time):
         for s in range(S):
             for k in range(K):
                 R_possible[t,k,s]=Bc*m.log2(1+P*H[t,k,s]**2/(N0*Bc))
-                if abs(Tk[t,k])<np.finfo(float).eps:
-                    pf[t,k,s]=R_possible[t,k,s]/Tk[t,k]
+                if float(abs(Tk[t,k,s]))<np.finfo(float).eps:
+                    pf[t,k,s]=R_possible[t,k,s]/Tk[t,k,s]
                 else:
                     pf[t,k,s]=R_possible[t,k,s]
-            k_b=np.argmax(pf[:,s])#seeking for user who max pf forsubcarrier s
-            A[k_b,k_b,s]=1
-            Tk[k_b,k]=Tk[k_b,k]*(1-1/tc)+R_possible[t,k_b,s]/tc
+            k_b=np.argmax(pf[t,:,s])#seeking for user who max pf forsubcarrier s
+            A[t,k_b,s]=1
+            Tk[t,k_b,k]=Tk[t,k_b,k]*(1-1/tc)+R_possible[t,k_b,s]/tc
     return Tk
 
 def gains_to_datarate(H, P_total):
@@ -117,8 +117,11 @@ def gains_to_datarate(H, P_total):
 
 def generate_dataset(K, N, N_time, P_total, N_examples):
     x = np.zeros((N_examples, K * N * N_time))
+    y=np.zeros((N_examples, K * N * N_time))
     for i in range(N_examples):
-        x[i,:] = gains_to_datarate(channel(K, N, N_time), P_total).reshape(K*N*N_time)
-    return x
+        H=channel(K, N, N_time)
+        x[i,:] = gains_to_datarate(H, P_total).reshape(K*N*N_time)
+        y[i,:] =PF_scheduler(H,P_total).reshape(K*N*N_time)
+    return x,y
 
 generate_dataset(5, 7, 10, 1, 10)
