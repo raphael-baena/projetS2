@@ -13,7 +13,6 @@ filename = "dat.npz"
 #np.savez(filename,data=source_tensor)
 
 
-
 def fft(h,N):
     fft=np.fft.fft(h,axis=0)
     n=np.size(fft)
@@ -79,30 +78,34 @@ def channel(K,N,N_time):     #K users,N subcarriers, N_times slot.
             
     return H
     
-def PF_scheduler(H_t,A_t,P_total,N0,Tk_t):
+def PF_scheduler(H,P_total,N0,Tk):
   #A_t[k,s] timeslot,user,nsubcarrier
 #H_T: Channel matrix of size K*S.
 #Bc: Bandwidth per subband
 #Tk_t: average throughput achieved so far 
-
-    K=np.size(H_t,0)
-    S=np.size(H_t,1)
-
+    N_time=np.size(H,0)  #nb timeslot
+    K=np.size(K,1) #nb user
+    S=np.size(H,2) #nb subcarrier
+    N0 = 4e-21
     Bc=10E6/S
-
-
     tc=20
-
     P=P_total/S
-
-
-    for k in range(K):
-        R=0
+    A=np.zeros((N_time,K))#allocation matrice
+    R_possible=np.zeros((N_time,K))#possible data rate 
+    Tk=np.zeros((N_time,K,S))
+    pf=np.zeros(N_time,K,S)
+    for t in range(N_time):
         for s in range(S):
-            R=Bc*m.log2(1+P*H_t[k,s]**2/(N0*Bc))*A_t[k,s]
-            R+=R
-        Tk_t[k]=Tk_t[k]*(1-1/tc)+R/tc
-    return Tk_t
+            for k in range(K):
+                R_possible[t,k,s]=Bc*m.log2(1+P*H[t,k,s]**2/(N0*Bc))
+                if abs(Tk[t,k])<np.finfo(float).eps:
+                    pf[t,k,s]=R_possible[t,k,s]/Tk[t,k]
+                else:
+                    pf[t,k,s]=R_possible[t,k,s]
+            k_b=np.argmax(pf[:,s])#seeking for user who max pf forsubcarrier s
+            A[k_b,k_b,s]=1
+            Tk[k_b,k]=Tk[k_b,k]*(1-1/tc)+R_possible[t,k_b,s]/tc
+    return Tk
 
 def gains_to_datarate(H, P_total):
     N = H.shape[1]
