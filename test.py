@@ -92,19 +92,25 @@ def PF_scheduler(H,P_total):
     P=P_total/S
     A=np.zeros((N_time,K,S))#allocation matrice
     R_possible=np.zeros((N_time,K,S))#possible data rate 
-    Tk=np.zeros((N_time,K,S))
+    Tk=np.zeros((N_time,K))
     pf=np.zeros((N_time,K,S))
     for t in range(N_time):
         for s in range(S):
             for k in range(K):
                 R_possible[t,k,s]=Bc*m.log2(1+P*H[t,k,s]**2/(N0*Bc))
-                if float(abs(Tk[t,k,s]))<np.finfo(float).eps:
-                    pf[t,k,s]=R_possible[t,k,s]/Tk[t,k,s]
+                if float(abs(Tk[t,k]))>np.finfo(float).eps:
+                    pf[t,k,s]=R_possible[t,k,s]/Tk[t,k]
                 else:
                     pf[t,k,s]=R_possible[t,k,s]
             k_b=np.argmax(pf[t,:,s])#seeking for user who max pf forsubcarrier s
             A[t,k_b,s]=1
-            Tk[t,k_b,k]=Tk[t,k_b,k]*(1-1/tc)+R_possible[t,k_b,s]/tc
+            if t>1:
+                Tk[t,k_b]=Tk[t-1,k_b]*(1-1/tc)+R_possible[t,k_b,s]/tc
+                for k in range(K):
+                    if k!=k_b:
+                        Tk[t,k]=Tk[t-1,k]*(1-1/tc)
+            else:
+                Tk[t,k_b]=R_possible[t,k_b,s]/tc
     return Tk
 
 def gains_to_datarate(H, P_total):
@@ -117,11 +123,11 @@ def gains_to_datarate(H, P_total):
 
 def generate_dataset(K, N, N_time, P_total, N_examples):
     x = np.zeros((N_examples, K * N * N_time))
-    y=np.zeros((N_examples, K * N * N_time))
+    y=np.zeros((N_examples, K * N_time))
     for i in range(N_examples):
         H=channel(K, N, N_time)
         x[i,:] = gains_to_datarate(H, P_total).reshape(K*N*N_time)
-        y[i,:] =PF_scheduler(H,P_total).reshape(K*N*N_time)
-    return x,y
+        y[i,:] =PF_scheduler(H,P_total).reshape(K*N_time)
+    return y
 
-generate_dataset(5, 7, 10, 1, 10)
+y=generate_dataset(5, 7, 10, 1, 10)
