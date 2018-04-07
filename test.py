@@ -12,17 +12,6 @@ filename = "dat.npz"
 #source_tensor = H
 #np.savez(filename,data=source_tensor)
 
-
-def fft(h,N):
-    fft=np.fft.fft(h,axis=0)
-    n=np.size(fft)
-    if n>N:
-        fft=fft[:N]
-    if n<N:
-        fft=np.vstack([fft,np.vstack(np.zeros(N-n))])
-    return fft
-
-
 def spread_users_one_antenna(RRH_pos,Radius,K):
     user_pos = np.zeros((K,2))
 
@@ -64,10 +53,8 @@ def channel(K,N,N_time):     #K users,N subcarriers, N_times slot.
         for k in range(K):
             path = np.sort(np.vstack([np.array([0]), np.floor(np.random.rand(chan_path-1,1)*chan_v)]))
             h = (np.random.randn(chan_path,1)+1j*np.random.randn(chan_path,1))*np.exp(-path*(1000/B)/chan_Trms/2) 
-        
             h = h/np.linalg.norm(h) #normalisation du canal
-
-            H[t, k, :] = np.hstack(abs(fft(h,N)))
+            H[t, k, :] = np.hstack(abs(np.fft.fft(h,n=N,axis=0)))
         #Large scalefading depending on the distance user- antenna
         
             d = distance.euclidean(user_pos[k,:],RRH_pos)
