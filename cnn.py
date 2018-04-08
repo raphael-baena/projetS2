@@ -9,12 +9,12 @@ from torch.autograd import Variable
 # Hyper Parameters
 K=5
 N=7
-N_time=10
+N_time=12
 num_epochs = 5
 batch_size = 10
 learning_rate = 0.001
 
-# MNIST Dataset
+#Data
 loaded_npz = np.load("data_input.npz")
 x,r = loaded_npz["data"]
 x=x.reshape(batch_size,N_time,K,N)
@@ -23,13 +23,16 @@ loaded_npz = np.load("data_label.npz")
 l=loaded_npz["data"]
 l.reshape(batch_size,N_time,K)
 
-train_dataset = torch.utils.data.TensorDataset(torch.Tensor(x),torch.Tensor(l))
+
+tensor_x = torch.stack([torch.Tensor(i) for i in x]) # transform to torch tensors
+tensor_l = torch.stack([torch.Tensor(i) for i in l])
+
+train_dataset = torch.utils.data.TensorDataset(tensor_x,tensor_l)
 test_dataset = torch.utils.data.TensorDataset(torch.Tensor(x),torch.Tensor(l))
 
+
 # Data Loader (Input Pipeline)
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=batch_size, 
-                                           shuffle=True)
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset)
 
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                           batch_size=batch_size, 
@@ -66,8 +69,8 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
 #optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate)
 #
 ## Train the Model
-#for epoch in range(num_epochs):
-#    for i, (images, labels) in enumerate(train_loader):
+for epoch in range(num_epochs):
+    for i, (images, labels) in enumerate(train_loader):
 #        images = Variable(images).cuda()
 #        labels = Variable(labels).cuda()
 #        
@@ -84,7 +87,7 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
 #        if (i+1) % 100 == 0:
 #            print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
 #                   %(epoch+1, num_epochs, i+1, len(train_dataset)//batch_size, loss.data[0]))
-#
+
 ## Test the Model
 #cnn.eval()    # Change model to 'eval' mode (BN uses moving mean/var).
 #correct = 0

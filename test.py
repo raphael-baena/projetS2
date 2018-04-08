@@ -121,7 +121,7 @@ def generate_dataset(K, N, N_time, P_total, N_examples):
         y[i,:] =PF_scheduler(channel(K, N, N_time),P_total)[0].reshape(K*N_time)
     return x,r,y
 
-x,r,l=generate_dataset(5, 7, 10, 1000, 10)
+x,r,l=generate_dataset(5, 7, 12, 1000, 10)
 filename = "data_input.npz"
 source_tensor = x,r
 np.savez(filename,data=source_tensor)
