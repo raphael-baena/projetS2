@@ -81,6 +81,7 @@ def PF_scheduler(H,P_total):
     R_possible=np.zeros((N_time,K,S))#possible data rate 
     Tk=np.zeros((N_time,K))
     pf=np.zeros((N_time,K,S))
+    R=np.zeros((N_time,K))
     for t in range(N_time):
         for s in range(S):
             for k in range(K):
@@ -93,12 +94,14 @@ def PF_scheduler(H,P_total):
             A[t,k_b,s]=1
             if t>1:
                 Tk[t,k_b]=Tk[t-1,k_b]*(1-1/tc)+R_possible[t,k_b,s]/tc
-                for k in range(K):
-                    if k!=k_b:
-                        Tk[t,k]=Tk[t-1,k]*(1-1/tc)
             else:
                 Tk[t,k_b]=R_possible[t,k_b,s]/tc
-    return Tk
+            R[t,k_b]+=R_possible[t,k_b,s]
+        Tk[t,:]=np.zeros(K)
+        if t>1:
+            Tk[t,:]=Tk[t-1,:]*(1-1/tc)
+        Tk[t,:]=Tk[t,:]+R[t,:]/tc
+    return Tk,R
 
 def gains_to_datarate(H, P_total):
     N = H.shape[1]
@@ -117,4 +120,17 @@ def generate_dataset(K, N, N_time, P_total, N_examples):
         y[i,:] =PF_scheduler(H,P_total).reshape(K*N_time)
     return y
 
-y=generate_dataset(5, 7, 10, 1, 10)
+#y=generate_dataset(5, 7, 10, 1, 10)
+
+def Tk_Network_Output(R):
+    N_time=np.size(R,0)  #nb timeslot
+    K=np.size(R,1) 
+    Tk=np.zeros((N_time,K))
+    tc=20
+    for t in range(N_time):
+        if t>1:
+            Tk[t,:]=Tk[t-1,:]*(1-1/tc)
+        Tk[t,:]=Tk[t,:]+R[t,:]/tc
+    return Tk
+    
+    
