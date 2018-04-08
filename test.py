@@ -101,7 +101,7 @@ def PF_scheduler(H,P_total):
         if t>1:
             Tk[t,:]=Tk[t-1,:]*(1-1/tc)
         Tk[t,:]=Tk[t,:]+R[t,:]/tc
-    return Tk,R
+    return Tk,A
 
 def gains_to_datarate(H, P_total):
     N = H.shape[1]
@@ -113,16 +113,25 @@ def gains_to_datarate(H, P_total):
 
 def generate_dataset(K, N, N_time, P_total, N_examples):
     x = np.zeros((N_examples, K * N * N_time))
-    y=np.zeros((N_examples, K * N_time))
+    y=np.zeros((N_examples, K * N_time))#label
+    r=np.zeros((N_examples,K* N_time*N))
     for i in range(N_examples):
-        H=channel(K, N, N_time)
-        x[i,:] = gains_to_datarate(H, P_total).reshape(K*N*N_time)
-        y[i,:] =PF_scheduler(H,P_total).reshape(K*N_time)
-    return y
+        r[i,:]=gains_to_datarate(channel(K, N, N_time),P_total).reshape(K*N*N_time)
+        x[i,:] = gains_to_datarate(channel(K, N, N_time), P_total).reshape(K*N*N_time)
+        y[i,:] =PF_scheduler(channel(K, N, N_time),P_total)[0].reshape(K*N_time)
+    return x,r,y
 
-#y=generate_dataset(5, 7, 10, 1, 10)
+x,r,l=generate_dataset(5, 7, 10, 1000, 10)
+filename = "data_input.npz"
+source_tensor = x,r
+np.savez(filename,data=source_tensor)
+filename = "data_label.npz"
+source_tensor = l
+np.savez(filename,data=source_tensor)
 
-def Tk_Network_Output(R):
+
+
+def Tk_Network_Output(R,A_output):
     N_time=np.size(R,0)  #nb timeslot
     K=np.size(R,1) 
     Tk=np.zeros((N_time,K))
