@@ -82,10 +82,11 @@ def PF_scheduler(H,P_total):
     Tk=np.zeros((N_time,K))
     pf=np.zeros((N_time,K,S))
     R=np.zeros((N_time,K))
+    R_possible=gains_to_datarate(H,P_total)
     for t in range(N_time):
+        
         for s in range(S):
             for k in range(K):
-                R_possible[t,k,s]=Bc*m.log2(1+P*H[t,k,s]**2/(N0*Bc))
                 if float(abs(Tk[t,k]))>np.finfo(float).eps:
                     pf[t,k,s]=R_possible[t,k,s]/Tk[t,k]
                 else:
@@ -101,7 +102,7 @@ def PF_scheduler(H,P_total):
         if t>1:
             Tk[t,:]=Tk[t-1,:]*(1-1/tc)
         Tk[t,:]=Tk[t,:]+R[t,:]/tc
-    return Tk,A
+    return Tk,A,R,R_possible
 
 def gains_to_datarate(H, P_total):
     N = H.shape[1]
@@ -131,15 +132,17 @@ np.savez(filename,data=source_tensor)
 
 
 
-def Tk_Network_Output(R,A_output):
+def Tk_Network_Output(R,A):
     N_time=np.size(R,0)  #nb timeslot
     K=np.size(R,1) 
     Tk=np.zeros((N_time,K))
     tc=20
     for t in range(N_time):
+        A_t=np.transpose(A[t,:,:])
+        Rtot=np.diagonal(np.matmul(R[t,:,:],A_t))
         if t>1:
             Tk[t,:]=Tk[t-1,:]*(1-1/tc)
-        Tk[t,:]=Tk[t,:]+R[t,:]/tc
+        Tk[t,:]=Tk[t,:]+Rtot/tc
     return Tk
     
     
