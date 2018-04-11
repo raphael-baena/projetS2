@@ -11,7 +11,7 @@ K=5
 N=7
 N_time=12
 num_epochs = 5
-batch_size = 10
+batch_size = 100
 learning_rate = 0.001
 FC=1000
 
@@ -24,21 +24,18 @@ loaded_npz = np.load("data_label.npz")
 l=loaded_npz["data"]
 l.reshape(batch_size,N_time,K)
 
-
-tensor_x = torch.stack([torch.Tensor(i) for i in x]) # transform to torch tensors
-tensor_l = torch.stack([torch.Tensor(i) for i in l])
+tensor_x = torch.stack([torch.Tensor(i)for i in x]) # transform to torch tensors
+tensor_l = torch.stack([torch.Tensor(i).view(N_time,K) for i in l])
 tensor_r= torch.stack([torch.Tensor(i) for i in r])
 
 train_dataset = torch.utils.data.TensorDataset(tensor_x,tensor_l)
-test_dataset = torch.utils.data.TensorDataset(torch.Tensor(x),torch.Tensor(l))
+test_dataset = torch.utils.data.TensorDataset(tensor_x,tensor_l)
 
 
 # Data Loader (Input Pipeline)
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset)
 
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=batch_size, 
-                                     shuffle=False)
+test_loader = torch.utils.data.DataLoader(dataset=test_dataset)
 #
 # CNN Model (2 conv layer)
 class CNN(nn.Module):
@@ -77,13 +74,14 @@ cnn = CNN()
 cnn
 #
 ## Loss and Optimizer
-#criterion = nn.MSELoss()
-#optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate)
+criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate)
 #
 ## Train the Model
 
 def Tk_Network_Output(R,A):
     N_time=np.size(R,0)  #nb timeslot
+    A=A.data.numpy()
     K=np.size(R,1) 
     Tk=np.zeros((N_time,K))
     tc=20
@@ -98,35 +96,42 @@ def Tk_Network_Output(R,A):
 for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):
         data_rata=tensor_r[i,:,:]
-        images = Variable(images)
+        images = Variable(images,requires_grad=True)
         labels = Variable(labels)
-#        
+        labels=labels[0,:,:]
 #        # Forward + Backward + Optimize
-#        optimizer.zero_grad()
         outputs = cnn(images)
+        outputs=Tk_Network_Output(data_rata,outputs)
+        outputs=Variable(torch.Tensor(outputs),requires_grad=True)
+        optimizer.zero_grad()
+
+        
         
         """The out put must be convert into Tk to be compare with labels"""
-#        
-#        
-#        
-#        loss = criterion(outputs, labels)
-#        loss.backward()
-#        optimizer.step()
-#        
-#        if (i+1) % 100 == 0:
-#            print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-#                   %(epoch+1, num_epochs, i+1, len(train_dataset)//batch_size, loss.data[0]))
+        
+        loss = criterion(outputs,labels)
+        loss.backward()
+        optimizer.step()
+        
+        if (i+1) % 100 == 0:
+            print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
+                   %(epoch+1, num_epochs, i+1, len(train_dataset)//batch_size, loss.data[0]))
 
-## Test the Model
-#cnn.eval()    # Change model to 'eval' mode (BN uses moving mean/var).
-#correct = 0
-#total = 0
-#for images, labels in test_loader:
-#    images = Variable(images).cuda()
-#    outputs = cnn(images)
-#    _, predicted = torch.max(outputs.data, 1)
-#    total += labels.size(0)
-#    correct += (predicted.cpu() == labels).sum()
+# Test the Model
+cnn.eval()    # Change model to 'eval' mode (BN uses moving mean/var).
+correct = 0
+total = 0
+for images, labels in test_loader:
+    images = Variable(images)
+    labels = Variable(labels)
+    labels=labels[0,:,:]
+    outputs = cnn(images)
+    outputs=Tk_Network_Output(data_rata,outputs)
+    outputs=Variable(torch.Tensor(outputs),requires_grad=True)
+    labels=labels.data
+    _, predicted = torch.max(outputs.data, 1)
+    total += labels.size(0)
+    correct += (predicted == labels).sum()
 #
 #print('Test Accuracy of the model on the 10000 test images: %d %%' % (100 * correct / total))
 #

@@ -102,7 +102,7 @@ def PF_scheduler(H,P_total):
         if t>1:
             Tk[t,:]=Tk[t-1,:]*(1-1/tc)
         Tk[t,:]=Tk[t,:]+R[t,:]/tc
-    return Tk,A,R,R_possible
+    return Tk
 
 def gains_to_datarate(H, P_total):
     N = H.shape[1]
@@ -119,10 +119,10 @@ def generate_dataset(K, N, N_time, P_total, N_examples):
     for i in range(N_examples):
         r[i,:]=gains_to_datarate(channel(K, N, N_time),P_total).reshape(K*N*N_time)
         x[i,:] = gains_to_datarate(channel(K, N, N_time), P_total).reshape(K*N*N_time)
-        y[i,:] =PF_scheduler(channel(K, N, N_time),P_total)[0].reshape(K*N_time)
+        y[i,:]=PF_scheduler(channel(K, N, N_time),P_total).reshape(K*N_time)
     return x,r,y
 
-x,r,l=generate_dataset(5, 7, 12, 1000, 10)
+x,r,l=generate_dataset(5, 7, 12, 10, 100)
 filename = "data_input.npz"
 source_tensor = x,r
 np.savez(filename,data=source_tensor)
