@@ -9,10 +9,8 @@ import math as m
 import random
 from scipy.spatial import distance
 filename = "dat.npz"
-#source_tensor = H
-#np.savez(filename,data=source_tensor)
 
-def spread_users_one_antenna(RRH_pos,Radius,K):
+def spread_users_one_antenna(RRH_pos,Radius,K):#RETURN LOCATION OF USERS
     user_pos = np.zeros((K,2))
 
     # magic numbers!
@@ -36,11 +34,11 @@ def spread_users_one_antenna(RRH_pos,Radius,K):
             user_pos[t,1] = 0.5*Radius*a*(random.random()-0.5)
             odd[:,t] = (m.sqrt((user_pos[t,0]-RRH_pos[0])**2 +(user_pos[t,1]-RRH_pos[1])**2 ))
 
-    # return location of users
     return user_pos
 
 
-def channel(K,N,N_time):     #K users,N subcarriers, N_times slot.
+def channel(K,N,N_time): #RETURN CHANNEL STATE in three dimension (K,N,N_time)
+    #K users,N subcarriers, N_times slot.
     R=500                    #radius of the cell
     H=np.zeros((N_time,K,N)) #H[t,k,n] is the channel gain at time it on subband n for user k
     B=10 #
@@ -65,7 +63,7 @@ def channel(K,N,N_time):     #K users,N subcarriers, N_times slot.
             
     return H
     
-def PF_scheduler(H,P_total):
+def PF_scheduler(H,P_total):#ALLOCATION ALGORITHM USE FOR FAIRNESS (LABEL)
   #A_t[k,s] timeslot,user,nsubcarrier
 #H_T: Channel matrix of size K*S.
 #Bc: Bandwidth per subband
@@ -104,13 +102,12 @@ def PF_scheduler(H,P_total):
         Tk[t,:]=Tk[t,:]+R[t,:]/tc
     return Tk
 
-def gains_to_datarate(H, P_total):
+def gains_to_datarate(H, P_total):#RETURN THE DATA RATE TENSOR(K,N,N_time)
     N = H.shape[1]
     P = P_total/N
-    Bc = 1e6 / N
+    Bc = 1e6 / N #Subbandwidth
     N0 = 4e-21
-
-    return Bc*np.log2(1+P*np.square(H)/(N0*Bc))
+    return Bc*np.log2(1+P*np.square(H)/(N0*Bc))#FORMULA OF DATA RATE
 
 def generate_dataset(K, N, N_time, P_total, N_examples):
     x = np.zeros((N_examples, K * N * N_time))
@@ -121,8 +118,8 @@ def generate_dataset(K, N, N_time, P_total, N_examples):
         x[i,:] = gains_to_datarate(channel(K, N, N_time), P_total).reshape(K*N*N_time)
         y[i,:]=PF_scheduler(channel(K, N, N_time),P_total).reshape(K*N_time)
     return x,r,y
-
-x,r,l=generate_dataset(5, 7, 12, 10, 100)
+###TRAIN DATA SET
+x,r,l=generate_dataset(10, 20, 12, 10, 1000)
 filename = "data_input.npz"
 source_tensor = x,r
 np.savez(filename,data=source_tensor)
@@ -130,8 +127,17 @@ filename = "data_label.npz"
 source_tensor = l
 np.savez(filename,data=source_tensor)
 
+###TEST DATA SET
+x,r,l=generate_dataset(10, 20, 12, 10, 1000)
+filename = "data_input_test.npz"
+source_tensor = x,r
+np.savez(filename,data=source_tensor)
+filename = "data_label_test.npz"
+source_tensor = l
+np.savez(filename,data=source_tensor)
 
 
+###RETURN THE TRUE DATA RATE WITH ALLOCATION TENSOR AND DATA RATE TENSOR
 def Tk_Network_Output(R,A):
     N_time=np.size(R,0)  #nb timeslot
     K=np.size(R,1) 
