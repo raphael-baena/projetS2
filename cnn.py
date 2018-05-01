@@ -13,6 +13,7 @@ N_time=12#number of time slot
 num_epochs = 100
 batch_size = 10000
 learning_rate = 0.00001
+test_size=1000
 FC=1000
 
 ### TRAIN Data set
@@ -32,11 +33,11 @@ train_dataset = torch.utils.data.TensorDataset(tensor_x,tensor_l)
 ### TEST Data set
 loaded_npz = np.load("data_input_test.npz")
 x,r = loaded_npz["data"]
-x=x.reshape(1000,N_time,K,N)
-r=r.reshape(1000,N_time,K,N)
+x=x.reshape(test_size,N_time,K,N)
+r=r.reshape(test_size,N_time,K,N)
 loaded_npz = np.load("data_label_test.npz")
 l=loaded_npz["data"]
-l.reshape(1000,N_time,K,N)
+l.reshape(test_size,N_time,K,N)
 tensor_x = torch.stack([torch.Tensor((i-np.mean(i))/np.std(i))for i in x]) # transform to torch tensors
 tensor_l = torch.stack([torch.Tensor(i) for i in l])
 tensor_r= torch.stack([torch.Tensor(i) for i in r])
