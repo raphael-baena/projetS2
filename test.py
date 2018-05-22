@@ -100,7 +100,7 @@ def PF_scheduler(H,P_total):#ALLOCATION ALGORITHM USE FOR FAIRNESS (LABEL)
         if t>1:
             Tk[t,:]=Tk[t-1,:]*(1-1/tc)
         Tk[t,:]=Tk[t,:]+R[t,:]/tc
-    return Tk
+    return A
 
 def gains_to_datarate(H, P_total):#RETURN THE DATA RATE TENSOR(K,N,N_time)
     N = H.shape[1]
@@ -111,15 +111,20 @@ def gains_to_datarate(H, P_total):#RETURN THE DATA RATE TENSOR(K,N,N_time)
 
 def generate_dataset(K, N, N_time, P_total, N_examples):
     x = np.zeros((N_examples, K * N * N_time))
-    y=np.zeros((N_examples, K * N_time))#label
+    y=np.zeros((N_examples, K * N_time*N))#label
     r=np.zeros((N_examples,K* N_time*N))
     for i in range(N_examples):
         r[i,:]=gains_to_datarate(channel(K, N, N_time),P_total).reshape(K*N*N_time)
         x[i,:] = gains_to_datarate(channel(K, N, N_time), P_total).reshape(K*N*N_time)
-        y[i,:]=PF_scheduler(channel(K, N, N_time),P_total).reshape(K*N_time)
+        y[i,:]=PF_scheduler(channel(K, N, N_time),P_total).reshape(K*N*N_time)
+        if (i+1) % 1000 == 0:
+            print(i)
     return x,r,y
+
+
 ###TRAIN DATA SET
-x,r,l=generate_dataset(10, 20, 12, 10, 1000)
+x,r,l=generate_dataset(3, 10, 3, 10, 1000)
+
 filename = "data_input.npz"
 source_tensor = x,r
 np.savez(filename,data=source_tensor)
@@ -128,13 +133,15 @@ source_tensor = l
 np.savez(filename,data=source_tensor)
 
 ###TEST DATA SET
-x,r,l=generate_dataset(10, 20, 12, 10, 1000)
+x,r,l=generate_dataset(3, 10, 3, 10, 1000)
 filename = "data_input_test.npz"
 source_tensor = x,r
 np.savez(filename,data=source_tensor)
 filename = "data_label_test.npz"
 source_tensor = l
 np.savez(filename,data=source_tensor)
+#
+
 
 
 ###RETURN THE TRUE DATA RATE WITH ALLOCATION TENSOR AND DATA RATE TENSOR
