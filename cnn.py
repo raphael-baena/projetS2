@@ -7,15 +7,16 @@ from torch.autograd import Variable
 
 
 # Hyper Parameters
-K=4
-N=7
-N_time=10
-num_epochs = 3000
-test_size=1000
+K=2
+N=2
+N_time=1
+num_epochs = 100
+test_size= 1000
 batch_size = 10000
-real_batch_size = 3000
-learning_rate = 0.01
-FC=400
+real_batch_size = 10
+learning_rate = 0.001
+FC=100
+
 
 #DATA TRAIN
 loaded_npz = np.load("data_input.npz")
@@ -27,11 +28,12 @@ loaded_npz = np.load("data_label.npz")
 l_train=loaded_npz["data"]
 l_train.reshape(batch_size,N_time,K,N)
 #
-#batch_size = 1000
-#l_train = l_train[:batch_size,:]
-#x_train = x_train[:batch_size,:,:,:]
+batch_size = 100
+l_train = l_train[:batch_size,:]
+x_train = x_train[:batch_size,:,:,:]
 
 tensor_x_train = torch.stack([torch.Tensor((i-np.mean(i))/np.std(i))for i in x_train]) # transform to torch tensors
+tensor_x_train = torch.stack([torch.Tensor((i/x_train.max()))for i in x_train]) # transform to torch tensors
 tensor_l_train = torch.stack([torch.Tensor(i) for i in l_train])
 tensor_r_train = torch.stack([torch.Tensor(i) for i in r_train])
 
@@ -45,6 +47,7 @@ loaded_npz = np.load("data_label_test.npz")
 l_test=loaded_npz["data"]
 l_test.reshape(test_size,N_time,K,N)
 tensor_x_test = torch.stack([torch.Tensor((i-np.mean(i))/np.std(i))for i in x_test]) # transform to torch tensors
+tensor_x_test = torch.stack([torch.Tensor((i/x_train.max()))for i in x_test]) # transform to torch tensors
 tensor_l_test = torch.stack([torch.Tensor(i) for i in l_test])
 tensor_r_test= torch.stack([torch.Tensor(i) for i in r_test])
 test_dataset = torch.utils.data.TensorDataset(tensor_x_test,tensor_l_test)
@@ -71,23 +74,24 @@ class CNN(nn.Module):
 #            nn.MaxPool2d(1))
         self.fc1=nn.Linear(N_time*K*N,FC)
         self.fc2=nn.Linear(FC,FC)
-        self.fc3=nn.Linear(FC,FC)
-        self.fc4=nn.Linear(FC,FC)
+        # self.fc3=nn.Linear(FC,FC)
+        # self.fc4=nn.Linear(FC,FC)
         self.fc5 = nn.Linear(FC,N_time*K*N)
-        self.do = nn.Dropout()
+        self.bn = nn.BatchNorm1d(FC)
+        # self.do = nn.Dropout(0.)
         
     def forward(self, x):
 #        out = self.layer1(x)
 #        out = self.layer2(out)
         out = x.view(-1,N_time*K*N)
-        out = self.do(nn.functional.relu(self.fc1(out)))
-        
-        out =self.do(nn.functional.relu(self.fc2(out)))
-        out =self.do(nn.functional.relu(self.fc3(out)))
-        out =self.do(nn.functional.relu(self.fc4(out)))
-        out = self.fc5(out)
+        out = nn.functional.relu(self.fc1(out))
+        out = nn.functional.relu(self.fc2(out))
+        # out =self.do(nn.functional.relu(self.fc3(out)))
+        # out =self.do(nn.functional.relu(self.fc4(out)))
+        out = self.fc5(self.bn(out))
         out=out.view(-1,N_time,K,N)
         out=nn.Softmax(2)(out)
+        
         out =out.view(-1,N_time*K*N)
         return out
         
@@ -130,37 +134,41 @@ def winner_take_it_all(outputs):
                 
 
 for epoch in range(num_epochs):
+    losstotal = 0
     for i, (images, labels) in enumerate(train_loader):
-        #data_rata=tensor_r[i,:,:]
         optimizer.zero_grad()
 
         images = Variable(images,requires_grad=True).cuda()
         labels = Variable(labels).cuda()
-#        labels=labels.view(-1,N_time,K,N)
-#        # Forward + Backward + Optimize
         outputs = cnn(images)
         
         
         loss = criterion(outputs,labels)
         loss.backward()
         optimizer.step()
+        losstotal += loss.data[0]
         
         if i+1 == batch_size // real_batch_size:
             print ('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f' 
-                   %(epoch+1, num_epochs, i+1, len(train_dataset)//real_batch_size, loss.data[0]))
+                   %(epoch+1, num_epochs, i+1, len(train_dataset)//real_batch_size, losstotal))
             ## Test the Model
             cnn.eval()    # Change model to 'eval' mode (BN uses moving mean/var).
             correct = 0
             total = 0
             loss=0
+            losstotal2 = 0
             for i, (images, labels) in enumerate(test_loader):
                 images = Variable(images,requires_grad=True).cuda()
                 labels = Variable(labels).cuda()
-                labels=labels.view(-1,N_time,K,N)
+                # labels=labels.view(-1,N_time,K,N)
                 outputs = cnn(images)
+                # outputs = 1-outputs
+                # print(outputs)
+                # print(labels)
                 loss = criterion_test(outputs,labels)
+                losstotal2 += loss.data[0]
                 if (i+1) % 1000 == 0:
-                    print (len(train_dataset)//1000, loss.data[0])        
+                    print (len(train_dataset)//1000, losstotal2)        
 
 
 #print(outputs)

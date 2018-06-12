@@ -122,8 +122,15 @@ def generate_dataset(K, N, N_time, P_total, N_examples):
     return x,r,y
 
 
+nb_users = 2
+nb_carriers = 2
+nb_timeslots = 1
+power = 10
+n_examples = 10000
+n_tests = 1000
+
 ###TRAIN DATA SET
-x,r,l=generate_dataset(4, 7,10 , 10, 10000)
+x,r,l = generate_dataset(nb_users, nb_carriers, nb_timeslots, power, n_examples)
 
 filename = "data_input.npz"
 source_tensor = x,r
@@ -133,7 +140,7 @@ source_tensor = l
 np.savez(filename,data=source_tensor)
 
 ###TEST DATA SET
-x,r,l=generate_dataset(4, 7, 10, 10, 1000)
+x,r,l = generate_dataset(nb_users, nb_carriers, nb_timeslots, power, n_tests)
 filename = "data_input_test.npz"
 source_tensor = x,r
 np.savez(filename,data=source_tensor)
