@@ -7,15 +7,15 @@ from torch.autograd import Variable
 
 
 # Hyper Parameters
-K=3
-N=10
-N_time=3
-num_epochs = 100
+K=4
+N=7
+N_time=10
+num_epochs = 3000
 test_size=1000
-batch_size = 1000
-real_batch_size = 10
-learning_rate = 0.001
-FC=300
+batch_size = 10000
+real_batch_size = 3000
+learning_rate = 0.01
+FC=400
 
 #DATA TRAIN
 loaded_npz = np.load("data_input.npz")
@@ -26,10 +26,10 @@ r_train=r_train.reshape(batch_size,N_time,K,N)
 loaded_npz = np.load("data_label.npz")
 l_train=loaded_npz["data"]
 l_train.reshape(batch_size,N_time,K,N)
-
-batch_size = 1000
-l_train = l_train[:batch_size,:]
-x_train = x_train[:batch_size,:,:,:]
+#
+#batch_size = 1000
+#l_train = l_train[:batch_size,:]
+#x_train = x_train[:batch_size,:,:,:]
 
 tensor_x_train = torch.stack([torch.Tensor((i-np.mean(i))/np.std(i))for i in x_train]) # transform to torch tensors
 tensor_l_train = torch.stack([torch.Tensor(i) for i in l_train])
@@ -158,9 +158,9 @@ for epoch in range(num_epochs):
                 labels = Variable(labels).cuda()
                 labels=labels.view(-1,N_time,K,N)
                 outputs = cnn(images)
-                loss += criterion_test(outputs,labels)
+                loss = criterion_test(outputs,labels)
                 if (i+1) % 1000 == 0:
-                    print (len(train_dataset)//1000, loss.data[0]/(i+1))        
+                    print (len(train_dataset)//1000, loss.data[0])        
 
 
 #print(outputs)
