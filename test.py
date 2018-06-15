@@ -114,17 +114,18 @@ def generate_dataset(K, N, N_time, P_total, N_examples):
     y=np.zeros((N_examples, K * N_time*N))#label
     r=np.zeros((N_examples,K* N_time*N))
     for i in range(N_examples):
-        r[i,:]=gains_to_datarate(channel(K, N, N_time),P_total).reshape(K*N*N_time)
-        x[i,:] = gains_to_datarate(channel(K, N, N_time), P_total).reshape(K*N*N_time)
-        y[i,:]=PF_scheduler(channel(K, N, N_time),P_total).reshape(K*N*N_time)
+        H=channel(K, N, N_time)
+        r[i,:]=gains_to_datarate(H,P_total).reshape(K*N*N_time)
+        x[i,:] = gains_to_datarate(H, P_total).reshape(K*N*N_time)
+        y[i,:]=PF_scheduler(H,P_total).reshape(K*N*N_time)
         if (i+1) % 1000 == 0:
             print(i)
     return x,r,y
 
 
-nb_users = 2
-nb_carriers = 2
-nb_timeslots = 1
+nb_users = 10
+nb_carriers = 10
+nb_timeslots = 10
 power = 10
 n_examples = 10000
 n_tests = 1000

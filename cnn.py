@@ -7,15 +7,15 @@ from torch.autograd import Variable
 
 
 # Hyper Parameters
-K=2
-N=2
-N_time=1
-num_epochs = 100
+K=10
+N=10
+N_time=10
+num_epochs = 1000
 test_size= 1000
 batch_size = 10000
-real_batch_size = 10
-learning_rate = 0.001
-FC=100
+real_batch_size = 1000
+learning_rate = 0.01
+FC=500
 
 
 #DATA TRAIN
@@ -28,9 +28,7 @@ loaded_npz = np.load("data_label.npz")
 l_train=loaded_npz["data"]
 l_train.reshape(batch_size,N_time,K,N)
 #
-batch_size = 100
-l_train = l_train[:batch_size,:]
-x_train = x_train[:batch_size,:,:,:]
+
 
 tensor_x_train = torch.stack([torch.Tensor((i-np.mean(i))/np.std(i))for i in x_train]) # transform to torch tensors
 tensor_x_train = torch.stack([torch.Tensor((i/x_train.max()))for i in x_train]) # transform to torch tensors
